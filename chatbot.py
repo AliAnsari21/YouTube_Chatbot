@@ -54,7 +54,7 @@ def create_conversational_chain(video_id, api_key, question):
     # Groq
     llm = ChatGroq(
         groq_api_key=api_key,
-        model="llama-3.1-8b-instant",
+        model="openai/gpt-oss-20b",
         temperature=0.2
     )
 
