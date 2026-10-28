@@ -7,35 +7,73 @@ from langchain_groq import ChatGroq
 
 def create_conversational_chain(video_id, api_key, question):
     # Get transcript
+    # try:
+    #     api = YouTubeTranscriptApi()
+
+    #     # Try English first
+    #     try:
+    #         transcript_list = api.fetch(
+    #             video_id,
+    #             languages=["en"]
+    #         )
+
+    #     except Exception:
+
+    #         # If English is not available,
+    #         # try Hindi
+    #         transcript_list = api.fetch(
+    #             video_id,
+    #             languages=["hi"]
+    #         )
+
+    #     transcript = " ".join(
+    #         chunk.text
+    #         for chunk in transcript_list
+    #     )
+
+    # except Exception as e:
+
+    #     raise Exception(
+    #         f"Transcript error: {e}"
+    #     )
+    
+    # Get transcript
     try:
         api = YouTubeTranscriptApi()
 
-        # Try English first
-        try:
-            transcript_list = api.fetch(
-                video_id,
-                languages=["en"]
-            )
+        transcript_list = None
+        last_error = None
 
-        except Exception:
+        # Try English, then Hindi
+        for language in ["en", "hi"]:
+            try:
+                transcript_list = api.fetch(
+                    video_id,
+                    languages=[language]
+                )
+                break
 
-            # If English is not available,
-            # try Hindi
-            transcript_list = api.fetch(
-                video_id,
-                languages=["hi"]
+            except Exception as e:
+                last_error = e
+
+        if transcript_list is None:
+            raise Exception(
+                "Unable to retrieve the transcript. "
+                "The video may be region-restricted, "
+                "unavailable on the cloud server, or "
+                "missing English/Hindi captions. "
+                f"Details: {last_error}"
             )
 
         transcript = " ".join(
-            chunk.text
-            for chunk in transcript_list
+            chunk.text for chunk in transcript_list
         )
+
+        if not transcript.strip():
+            raise Exception("The video transcript is empty.")
 
     except Exception as e:
-
-        raise Exception(
-            f"Transcript error: {e}"
-        )
+        raise Exception(f"Transcript error: {e}")
 
     # Split transcript
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000,chunk_overlap=200)
