@@ -5,7 +5,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import PromptTemplate
 from langchain_groq import ChatGroq
 
-def create_conversational_chain(video_id, api_key, question):
+#def create_conversational_chain(video_id, api_key, question):
     # Get transcript
     # try:
     #     api = YouTubeTranscriptApi()
@@ -38,42 +38,54 @@ def create_conversational_chain(video_id, api_key, question):
     #     )
     
     # Get transcript
-    try:
-        api = YouTubeTranscriptApi()
+    
+def create_conversational_chain(
+    video_id, api_key, question, manual_transcript=None
+):
+    # Get transcript
+    transcript = (manual_transcript or "").strip()
 
-        transcript_list = None
-        last_error = None
+    if not transcript:
+        try:
+            api = YouTubeTranscriptApi()
+            transcript_list = None
+            last_error = None
 
-        # Try English, then Hindi
-        for language in ["en", "hi"]:
-            try:
-                transcript_list = api.fetch(
-                    video_id,
-                    languages=[language]
-                )
-                break
+            for language in ["en", "hi"]:
+                try:
+                    transcript_list = api.fetch(
+                        video_id,
+                        languages=[language]
+                    )
+                    break
+                except Exception as e:
+                    last_error = e
 
-            except Exception as e:
-                last_error = e
+            if transcript_list is None:
+                raise Exception(str(last_error))
 
-        if transcript_list is None:
+            transcript = " ".join(
+                chunk.text for chunk in transcript_list
+            ).strip()
+
+            if not transcript:
+                raise Exception("The transcript is empty.")
+
+        except Exception as e:
             raise Exception(
-                "Unable to retrieve the transcript. "
-                "The video may be region-restricted, "
-                "unavailable on the cloud server, or "
-                "missing English/Hindi captions. "
-                f"Details: {last_error}"
+                "Unable to retrieve the YouTube transcript. "
+                "Try pasting the transcript manually. "
+                f"Details: {e}"
             )
 
-        transcript = " ".join(
-            chunk.text for chunk in transcript_list
-        )
+    # Keep your existing code below:
+    # Split transcript
+    # Embeddings
+    # FAISS
+    # Retriever
+    # Groq
+    # Prompt
 
-        if not transcript.strip():
-            raise Exception("The video transcript is empty.")
-
-    except Exception as e:
-        raise Exception(f"Transcript error: {e}")
 
     # Split transcript
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000,chunk_overlap=200)
